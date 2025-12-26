@@ -5,23 +5,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// 新闻源配置
+// 新闻源配置 - 扩展版本
 const NEWS_SOURCES = [
   // 政治新闻
   { url: 'https://www.bbc.com/news/world', name: 'BBC World', category: 'politics' },
   { url: 'https://www.reuters.com/world/', name: 'Reuters', category: 'politics' },
+  { url: 'https://www.politico.com/', name: 'Politico', category: 'politics' },
+  
+  // 国际新闻
   { url: 'https://www.aljazeera.com/news/', name: 'Al Jazeera', category: 'world' },
+  { url: 'https://www.dw.com/en/top-stories/s-9097', name: 'DW News', category: 'world' },
+  { url: 'https://www.france24.com/en/', name: 'France24', category: 'world' },
   
   // 科技新闻
   { url: 'https://techcrunch.com/', name: 'TechCrunch', category: 'technology' },
   { url: 'https://www.theverge.com/', name: 'The Verge', category: 'technology' },
   { url: 'https://arstechnica.com/', name: 'Ars Technica', category: 'technology' },
+  { url: 'https://www.wired.com/', name: 'Wired', category: 'technology' },
   
   // 军事新闻
   { url: 'https://www.defense.gov/News/', name: 'Defense.gov', category: 'military' },
+  { url: 'https://www.defensenews.com/', name: 'Defense News', category: 'military' },
+  { url: 'https://www.janes.com/defence-news', name: 'Janes', category: 'military' },
   
   // 经济新闻
   { url: 'https://www.bloomberg.com/markets', name: 'Bloomberg', category: 'economy' },
+  { url: 'https://www.cnbc.com/world/', name: 'CNBC', category: 'economy' },
+  { url: 'https://www.ft.com/', name: 'Financial Times', category: 'economy' },
+  
+  // 中美关系
+  { url: 'https://www.scmp.com/topics/china-us-relations', name: 'SCMP China-US', category: 'china_us' },
+  { url: 'https://www.reuters.com/world/china/', name: 'Reuters China', category: 'china_us' },
+  { url: 'https://www.cnmdnews.com/', name: 'CNMD News', category: 'china_us' },
+  
+  // 俄乌冲突
+  { url: 'https://www.reuters.com/world/europe/', name: 'Reuters Europe', category: 'russia_ukraine' },
+  { url: 'https://www.bbc.com/news/world/europe', name: 'BBC Europe', category: 'russia_ukraine' },
+  { url: 'https://www.aljazeera.com/tag/ukraine-russia-crisis/', name: 'Al Jazeera Ukraine', category: 'russia_ukraine' },
+  
+  // 朝韩半岛
+  { url: 'https://www.nknews.org/', name: 'NK News', category: 'korea' },
+  { url: 'https://en.yna.co.kr/', name: 'Yonhap News', category: 'korea' },
+  { url: 'https://www.koreaherald.com/', name: 'Korea Herald', category: 'korea' },
+  
+  // 东南亚
+  { url: 'https://www.channelnewsasia.com/asia', name: 'CNA Asia', category: 'southeast_asia' },
+  { url: 'https://www.straitstimes.com/asia', name: 'Straits Times', category: 'southeast_asia' },
+  { url: 'https://www.bangkokpost.com/', name: 'Bangkok Post', category: 'southeast_asia' },
 ]
 
 interface NewsArticle {

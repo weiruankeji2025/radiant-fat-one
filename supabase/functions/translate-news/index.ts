@@ -9,17 +9,23 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log("Translation request received");
+    
     const { title, summary, targetLang = "zh-CN" } = await req.json();
     
     if (!title) {
+      console.log("No title provided");
       return new Response(
         JSON.stringify({ error: "Title is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log(`Translating: ${title.substring(0, 50)}...`);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
@@ -41,6 +47,8 @@ ${summary ? `Summary: ${summary}` : ""}
 Return in this exact JSON format:
 {"translatedTitle": "translated title here", "translatedSummary": "translated summary here or null if no summary"}`;
 
+    console.log("Calling AI gateway...");
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -57,6 +65,9 @@ Return in this exact JSON format:
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`AI gateway error: ${response.status} - ${errorText}`);
+      
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded, please try again later." }),
@@ -69,17 +80,18 @@ Return in this exact JSON format:
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("AI gateway error");
+      throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
+      console.error("No translation content returned");
       throw new Error("No translation returned");
     }
+
+    console.log("Parsing translation response...");
 
     // Parse the JSON response, handling potential markdown code blocks
     let parsed;
@@ -97,10 +109,13 @@ Return in this exact JSON format:
         if (objectMatch) {
           parsed = JSON.parse(objectMatch[0]);
         } else {
+          console.error("Could not parse response:", content);
           throw new Error("Could not parse translation response");
         }
       }
     }
+
+    console.log("Translation successful");
 
     return new Response(
       JSON.stringify({
