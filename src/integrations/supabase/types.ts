@@ -71,6 +71,10 @@ export type Database = {
         | "economy"
         | "world"
         | "other"
+        | "china_us"
+        | "russia_ukraine"
+        | "korea"
+        | "southeast_asia"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -205,6 +209,10 @@ export const Constants = {
         "economy",
         "world",
         "other",
+        "china_us",
+        "russia_ukraine",
+        "korea",
+        "southeast_asia",
       ],
     },
   },
