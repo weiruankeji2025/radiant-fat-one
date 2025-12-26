@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from '@/components/ui/toaster'
 import HomePage from '@/pages/HomePage'
-import AuthPage from '@/pages/AuthPage'
+import Auth from '@/pages/Auth'
+import Profile from '@/pages/Profile'
 import AdminPage from '@/pages/AdminPage'
 import NotFound from '@/pages/NotFound'
 
@@ -10,7 +11,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
