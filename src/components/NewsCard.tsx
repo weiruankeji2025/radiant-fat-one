@@ -48,22 +48,23 @@ export function NewsCard({ article, index }: NewsCardProps) {
     setIsFavorite(!!data)
   }
 
-  // Auto-translate to Simplified Chinese on mount
-  useEffect(() => {
-    const autoTranslate = async () => {
-      setIsTranslating(true)
-      try {
-        const result = await translateArticle(article.title, article.summary, 'zh-CN')
-        setTranslatedTitle(result.translatedTitle)
-        setTranslatedSummary(result.translatedSummary)
-      } catch (error) {
-        console.error('Auto-translate failed:', error)
-      } finally {
-        setIsTranslating(false)
-      }
-    }
-    autoTranslate()
-  }, [article.id, article.title, article.summary])
+  // Auto-translation disabled - AI credits exhausted
+  // To re-enable, uncomment the useEffect below and add funds to Lovable AI
+  // useEffect(() => {
+  //   const autoTranslate = async () => {
+  //     setIsTranslating(true)
+  //     try {
+  //       const result = await translateArticle(article.title, article.summary, 'zh-CN')
+  //       setTranslatedTitle(result.translatedTitle)
+  //       setTranslatedSummary(result.translatedSummary)
+  //     } catch (error) {
+  //       console.error('Auto-translate failed:', error)
+  //     } finally {
+  //       setIsTranslating(false)
+  //     }
+  //   }
+  //   autoTranslate()
+  // }, [article.id, article.title, article.summary])
 
   const handleArticleClick = async () => {
     if (!userId) return
