@@ -1,29 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-async function verifyAuth(req: Request): Promise<{ user: any; error: string | null }> {
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return { user: null, error: 'Authorization header required' }
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
-  )
-
-  const { data: { user }, error } = await supabaseClient.auth.getUser()
-  if (error || !user) {
-    return { user: null, error: 'Invalid token' }
-  }
-
-  return { user, error: null }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -31,17 +9,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify authentication
-    const { user, error: authError } = await verifyAuth(req)
-    if (authError) {
-      console.log('Auth failed:', authError)
-      return new Response(
-        JSON.stringify({ error: authError }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      )
-    }
-    console.log(`Authenticated user: ${user.email}`)
-
     const { title, summary, targetLang = "zh-CN" } = await req.json();
     
     if (!title) {
