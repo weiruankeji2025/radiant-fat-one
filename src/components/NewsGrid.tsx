@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Newspaper } from 'lucide-react'
+import { Loader2, Newspaper, ChevronLeft, ChevronRight } from 'lucide-react'
 import { NewsArticle } from '@/lib/api/news'
 import { NewsCard } from './NewsCard'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { Button } from '@/components/ui/button'
 
 interface NewsGridProps {
   articles: NewsArticle[]
@@ -9,6 +12,21 @@ interface NewsGridProps {
 }
 
 export function NewsGrid({ articles, isLoading }: NewsGridProps) {
+  const isMobile = useIsMobile()
+  const [currentPage, setCurrentPage] = useState(1)
+  
+  const itemsPerPage = isMobile ? 5 : articles.length
+  const totalPages = Math.ceil(articles.length / itemsPerPage)
+  
+  const paginatedArticles = isMobile 
+    ? articles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : articles
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -37,12 +55,61 @@ export function NewsGrid({ articles, isLoading }: NewsGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <AnimatePresence mode="popLayout">
-        {articles.map((article, index) => (
-          <NewsCard key={article.id} article={article} index={index} />
-        ))}
-      </AnimatePresence>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AnimatePresence mode="popLayout">
+          {paginatedArticles.map((article, index) => (
+            <NewsCard key={article.id} article={article} index={index} />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Mobile Pagination */}
+      {isMobile && totalPages > 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-center gap-2 pt-4"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            上一页
+          </Button>
+          
+          <div className="flex items-center gap-1 px-3">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => goToPage(page)}
+                className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                  page === currentPage
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="gap-1"
+          >
+            下一页
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </motion.div>
+      )}
     </div>
   )
 }
