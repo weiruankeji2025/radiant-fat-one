@@ -1,9 +1,11 @@
 import weiruanLogo from '@/assets/weiruan-news-logo.jpg'
 import { VisitorStats } from './VisitorStats'
+import { VisitorCharts } from './VisitorCharts'
 
 export function NewsFooter() {
   return (
     <footer className="border-t border-border bg-card mt-12">
+      <VisitorCharts />
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">

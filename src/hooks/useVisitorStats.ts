@@ -8,15 +8,18 @@ interface VisitorStats {
   todayPageViews: number
   topCountries: { country: string; count: number }[]
   topCities: { city: string; count: number }[]
+  deviceDistribution: { name: string; value: number }[]
+  browserDistribution: { name: string; value: number }[]
+  dailyTrend: { date: string; views: number; visitors: number }[]
 }
 
 // 检测设备类型
 function getDeviceType(): string {
   const ua = navigator.userAgent
   if (/Mobile|Android|iPhone|iPad/.test(ua)) {
-    return /iPad|Tablet/.test(ua) ? 'tablet' : 'mobile'
+    return /iPad|Tablet/.test(ua) ? '平板' : '手机'
   }
-  return 'desktop'
+  return '电脑'
 }
 
 // 检测浏览器
@@ -26,7 +29,7 @@ function getBrowser(): string {
   if (ua.includes('Edge')) return 'Edge'
   if (ua.includes('Chrome')) return 'Chrome'
   if (ua.includes('Safari')) return 'Safari'
-  return 'Other'
+  return '其他'
 }
 
 // 获取地理位置信息
@@ -54,7 +57,10 @@ export function useVisitorStats() {
     totalPageViews: 0,
     todayPageViews: 0,
     topCountries: [],
-    topCities: []
+    topCities: [],
+    deviceDistribution: [],
+    browserDistribution: [],
+    dailyTrend: []
   })
 
   useEffect(() => {
@@ -171,13 +177,81 @@ export function useVisitorStats() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5)
 
+      // 设备分布
+      const { data: deviceData } = await supabase
+        .from('visitor_stats')
+        .select('device_type')
+        .not('device_type', 'is', null)
+
+      const deviceCounts: Record<string, number> = {}
+      deviceData?.forEach(row => {
+        if (row.device_type) {
+          deviceCounts[row.device_type] = (deviceCounts[row.device_type] || 0) + 1
+        }
+      })
+      const deviceDistribution = Object.entries(deviceCounts)
+        .map(([name, value]) => ({ name, value }))
+
+      // 浏览器分布
+      const { data: browserData } = await supabase
+        .from('visitor_stats')
+        .select('browser')
+        .not('browser', 'is', null)
+
+      const browserCounts: Record<string, number> = {}
+      browserData?.forEach(row => {
+        if (row.browser) {
+          browserCounts[row.browser] = (browserCounts[row.browser] || 0) + 1
+        }
+      })
+      const browserDistribution = Object.entries(browserCounts)
+        .map(([name, value]) => ({ name, value }))
+
+      // 7天访问趋势
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      sevenDaysAgo.setHours(0, 0, 0, 0)
+
+      const { data: trendData } = await supabase
+        .from('page_views')
+        .select('viewed_at, visitor_id')
+        .gte('viewed_at', sevenDaysAgo.toISOString())
+        .order('viewed_at', { ascending: true })
+
+      // 按日期分组
+      const dailyStats: Record<string, { views: number; visitors: Set<string> }> = {}
+      for (let i = 0; i < 7; i++) {
+        const date = new Date()
+        date.setDate(date.getDate() - (6 - i))
+        const dateStr = date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+        dailyStats[dateStr] = { views: 0, visitors: new Set() }
+      }
+
+      trendData?.forEach(row => {
+        const date = new Date(row.viewed_at)
+        const dateStr = date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+        if (dailyStats[dateStr]) {
+          dailyStats[dateStr].views++
+          dailyStats[dateStr].visitors.add(row.visitor_id)
+        }
+      })
+
+      const dailyTrend = Object.entries(dailyStats).map(([date, data]) => ({
+        date,
+        views: data.views,
+        visitors: data.visitors.size
+      }))
+
       setStats({
         totalVisitors: totalCount || 0,
         onlineCount: onlineCount || 0,
         totalPageViews: totalPageViews || 0,
         todayPageViews: todayPageViews || 0,
         topCountries,
-        topCities
+        topCities,
+        deviceDistribution,
+        browserDistribution,
+        dailyTrend
       })
     }
 
