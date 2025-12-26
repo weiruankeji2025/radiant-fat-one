@@ -5,6 +5,7 @@ import { NewsHeader } from '@/components/NewsHeader'
 import { NewsCategoryTabs } from '@/components/NewsCategoryTabs'
 import { NewsGrid } from '@/components/NewsGrid'
 import { NewsFooter } from '@/components/NewsFooter'
+import { FriendLinks } from '@/components/FriendLinks'
 import { fetchNews, refreshNews, NewsCategory, NewsArticle } from '@/lib/api/news'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -119,6 +120,7 @@ export default function HomePage() {
         <NewsGrid articles={filteredArticles} isLoading={isLoading} />
       </main>
       
+      <FriendLinks />
       <NewsFooter />
       <Toaster />
     </div>
