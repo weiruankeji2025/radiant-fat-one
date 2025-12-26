@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
-import { RefreshCw, Globe, Search, X } from 'lucide-react'
+import { RefreshCw, Globe, Search, X, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { UserMenu } from '@/components/UserMenu'
 import weiruanLogo from '@/assets/weiruan-news-logo.jpg'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 interface NewsHeaderProps {
   onRefresh: () => void
@@ -69,6 +70,13 @@ export function NewsHeader({ onRefresh, isRefreshing, lastUpdated, searchQuery, 
                 最后更新: {lastUpdated.toLocaleTimeString('zh-CN')}
               </span>
             )}
+
+            <Button variant="ghost" size="sm" asChild className="gap-2">
+              <Link to="/admin">
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">后台</span>
+              </Link>
+            </Button>
             
             {/* Search Toggle - Mobile */}
             <Button
