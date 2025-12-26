@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 
-export type NewsCategory = 'politics' | 'military' | 'technology' | 'economy' | 'world' | 'china_us' | 'russia_ukraine' | 'korea' | 'southeast_asia' | 'cnmd' | 'other'
+export type NewsCategory = 'politics' | 'military' | 'technology' | 'economy' | 'world' | 'china_us' | 'russia_ukraine' | 'korea' | 'southeast_asia' | 'cnmd' | 'weiruan' | 'other'
 
 export interface NewsArticle {
   id: string
@@ -86,6 +86,7 @@ export const categoryLabels: Record<NewsCategory, string> = {
   korea: '朝韩',
   southeast_asia: '东南亚',
   cnmd: 'CNMD NEWS',
+  weiruan: '威软科技',
   other: '其他',
 }
 
@@ -100,6 +101,7 @@ export const categoryColors: Record<NewsCategory, string> = {
   korea: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
   southeast_asia: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
   cnmd: 'bg-pink-500/10 text-pink-500 border-pink-500/20',
+  weiruan: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
   other: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
 }
 

@@ -141,6 +141,30 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_stats: {
+        Row: {
+          id: string
+          last_active_at: string
+          session_active: boolean | null
+          visited_at: string
+          visitor_id: string
+        }
+        Insert: {
+          id?: string
+          last_active_at?: string
+          session_active?: boolean | null
+          visited_at?: string
+          visitor_id: string
+        }
+        Update: {
+          id?: string
+          last_active_at?: string
+          session_active?: boolean | null
+          visited_at?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -161,6 +185,7 @@ export type Database = {
         | "korea"
         | "southeast_asia"
         | "cnmd"
+        | "weiruan"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -300,6 +325,7 @@ export const Constants = {
         "korea",
         "southeast_asia",
         "cnmd",
+        "weiruan",
       ],
     },
   },
