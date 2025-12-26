@@ -59,20 +59,58 @@ export async function refreshNews(category?: NewsCategory): Promise<{ success: b
 }
 
 export async function translateArticle(
-  title: string, 
-  summary: string | null, 
+  title: string,
+  summary: string | null,
   targetLang: string
 ): Promise<{ translatedTitle: string; translatedSummary: string | null }> {
-  const { data, error } = await supabase.functions.invoke('translate-news', {
-    body: { title, summary, targetLang },
-  })
+  // Use MyMemory free translation API directly from the client to avoid paid backend runtime.
+  // Docs: https://mymemory.translated.net/doc/spec.php
 
-  if (error) {
-    console.error('Translation error:', error)
-    throw new Error('Translation failed')
+  const langCodeMap: Record<string, string> = {
+    'zh-CN': 'zh-CN',
+    'zh-TW': 'zh-TW',
+    en: 'en',
+    ja: 'ja',
+    ko: 'ko',
   }
 
-  return data
+  const targetCode = langCodeMap[targetLang] || 'zh-CN'
+
+  // Detect source language (assume English if not Chinese)
+  const isChinese = /[\u4e00-\u9fa5]/.test(title)
+  const sourceLang = isChinese ? 'zh-CN' : 'en'
+
+  // If already in target language, return original
+  if (sourceLang === targetCode) {
+    return { translatedTitle: title, translatedSummary: summary }
+  }
+
+  const translateText = async (text: string): Promise<string> => {
+    if (!text) return ''
+
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+      text
+    )}&langpair=${sourceLang}|${targetCode}`
+
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`MyMemory error: ${res.status}`)
+
+    const data = await res.json()
+    if (data?.responseStatus !== 200) {
+      throw new Error(data?.responseDetails || 'MyMemory translation failed')
+    }
+
+    return data?.responseData?.translatedText ?? text
+  }
+
+  try {
+    const translatedTitle = await translateText(title)
+    const translatedSummary = summary ? await translateText(summary) : null
+    return { translatedTitle, translatedSummary }
+  } catch (e) {
+    console.warn('MyMemory translation failed, fallback to original:', e)
+    return { translatedTitle: title, translatedSummary: summary }
+  }
 }
 
 export const categoryLabels: Record<NewsCategory, string> = {
