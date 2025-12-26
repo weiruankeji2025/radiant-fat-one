@@ -114,7 +114,8 @@ async function crawlCnmdNews(
     
     if (mapResponse.ok) {
       const mapData = await mapResponse.json()
-      urlsToScrape = mapData.links || []
+      // Firecrawl v1 may nest results under data
+      urlsToScrape = mapData.data?.links || mapData.links || []
       console.log(`Found ${urlsToScrape.length} URLs from cnmdnews.com`)
     }
     
@@ -131,9 +132,9 @@ async function crawlCnmdNews(
     
     console.log(`Filtered to ${newsUrls.length} potential news article URLs`)
     
-    // Step 2: 使用 crawl API 深度抓取
-    console.log('Step 2: Deep crawling cnmdnews.com...')
-    const crawlResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
+    // Step 2: 使用 crawl API 深度抓取（Firecrawl crawl 为异步任务，需要轮询结果）
+    console.log('Step 2: Starting crawl job for cnmdnews.com...')
+    const crawlStartResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${firecrawlApiKey}`,
@@ -141,34 +142,85 @@ async function crawlCnmdNews(
       },
       body: JSON.stringify({
         url: 'https://www.cnmdnews.com/',
-        limit: 500, // 抓取最多500个页面
-        maxDepth: 5, // 增加深度
+        limit: 500,
+        maxDepth: 6,
         scrapeOptions: {
-          formats: ['markdown', 'links'],
+          formats: ['markdown', 'html'],
           onlyMainContent: true,
         },
       }),
     })
 
-    if (!crawlResponse.ok) {
-      console.error(`Failed to start crawl: ${crawlResponse.status}`)
+    if (!crawlStartResponse.ok) {
+      console.error(`Failed to start crawl: ${crawlStartResponse.status}`)
       // 回退到普通抓取
       return scrapeNewsFromUrl(firecrawlApiKey, 'https://www.cnmdnews.com/', 'CNMD News', category)
     }
 
-    const crawlData = await crawlResponse.json()
-    console.log('Crawl response:', JSON.stringify(crawlData).substring(0, 500))
-    
+    const crawlStartData = await crawlStartResponse.json()
+    console.log('Crawl response:', JSON.stringify(crawlStartData).substring(0, 500))
+
+    const crawlId = crawlStartData.id
+    if (!crawlId) {
+      console.error('Crawl did not return an id')
+      return []
+    }
+
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+    // 轮询最多 ~45 秒
+    let crawlResult: any = null
+    for (let attempt = 0; attempt < 15; attempt++) {
+      await sleep(3000)
+
+      const statusResp = await fetch(`https://api.firecrawl.dev/v1/crawl/${crawlId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!statusResp.ok) {
+        console.error(`Failed to check crawl status: ${statusResp.status}`)
+        continue
+      }
+
+      const statusData = await statusResp.json()
+      const status = statusData.status || statusData.data?.status
+      console.log(`Crawl status (attempt ${attempt + 1}/15): ${status}`)
+
+      if (status === 'completed') {
+        crawlResult = statusData
+        break
+      }
+
+      if (status === 'failed' || status === 'cancelled') {
+        console.error('Crawl failed:', JSON.stringify(statusData).substring(0, 500))
+        return []
+      }
+    }
+
+    if (!crawlResult) {
+      console.error('Crawl did not complete in time; returning empty for now')
+      return []
+    }
+
     const articles: NewsArticle[] = []
-    
-    // 处理爬取结果
-    const pages = crawlData.data || []
+
+    // 处理爬取结果（兼容 Firecrawl v1 的不同返回结构）
+    const pages = Array.isArray(crawlResult.data)
+      ? crawlResult.data
+      : Array.isArray(crawlResult.data?.data)
+        ? crawlResult.data.data
+        : []
+
     console.log(`Crawled ${pages.length} pages from cnmdnews.com`)
     
     for (const page of pages) {
-      const markdown = page.markdown || ''
-      const metadata = page.metadata || {}
-      const sourceUrl = metadata.sourceURL || 'https://www.cnmdnews.com/'
+      const markdown = page.markdown || page.data?.markdown || ''
+      const metadata = page.metadata || page.data?.metadata || {}
+      const sourceUrl = metadata.sourceURL || metadata.sourceUrl || page.url || 'https://www.cnmdnews.com/'
       
       // 从页面标题提取新闻
       if (metadata.title && metadata.title.length > 10 && metadata.title.length < 300) {
