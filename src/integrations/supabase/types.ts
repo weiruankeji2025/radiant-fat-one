@@ -160,6 +160,7 @@ export type Database = {
         | "russia_ukraine"
         | "korea"
         | "southeast_asia"
+        | "cnmd"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -298,6 +299,7 @@ export const Constants = {
         "russia_ukraine",
         "korea",
         "southeast_asia",
+        "cnmd",
       ],
     },
   },
