@@ -35,6 +35,26 @@ interface NewsArticle {
   published_at: string | null
 }
 
+async function verifyAuth(req: Request): Promise<{ user: any; error: string | null }> {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return { user: null, error: 'Authorization header required' }
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  )
+
+  const { data: { user }, error } = await supabaseClient.auth.getUser()
+  if (error || !user) {
+    return { user: null, error: 'Invalid token' }
+  }
+
+  return { user, error: null }
+}
+
 async function scrapeNewsFromUrl(
   firecrawlApiKey: string,
   url: string,
@@ -114,6 +134,17 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify authentication
+    const { user, error: authError } = await verifyAuth(req)
+    if (authError) {
+      console.log('Auth failed:', authError)
+      return new Response(
+        JSON.stringify({ success: false, error: authError }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    console.log(`Authenticated user: ${user.email}`)
+
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY')
     if (!firecrawlApiKey) {
       console.error('FIRECRAWL_API_KEY not configured')
