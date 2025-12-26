@@ -164,16 +164,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify authentication
-    const { user, error: authError } = await verifyAuth(req)
-    if (authError) {
-      console.log('Auth failed:', authError)
-      return new Response(
-        JSON.stringify({ success: false, error: authError }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-    console.log(`Authenticated user: ${user.email}`)
+    console.log('Fetch news request received')
 
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY')
     if (!firecrawlApiKey) {
