@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
 import { RefreshCw, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { UserMenu } from '@/components/UserMenu'
 import weiruanLogo from '@/assets/weiruan-news-logo.jpg'
 
 interface NewsHeaderProps {
@@ -20,7 +22,7 @@ export function NewsHeader({ onRefresh, isRefreshing, lastUpdated }: NewsHeaderP
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <img src={weiruanLogo} alt="WeiRuan Logo" className="w-10 h-10 object-contain" />
+            <img src={weiruanLogo} alt="WeiRuan Logo" className="w-10 h-10 object-contain rounded-lg" />
             <div>
               <h1 className="text-xl font-bold text-foreground">WeiRuan News</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -31,9 +33,9 @@ export function NewsHeader({ onRefresh, isRefreshing, lastUpdated }: NewsHeaderP
           </motion.div>
 
           {/* Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {lastUpdated && (
-              <span className="text-xs text-muted-foreground hidden sm:block">
+              <span className="text-xs text-muted-foreground hidden sm:block mr-2">
                 最后更新: {lastUpdated.toLocaleTimeString('zh-CN')}
               </span>
             )}
@@ -45,8 +47,10 @@ export function NewsHeader({ onRefresh, isRefreshing, lastUpdated }: NewsHeaderP
               className="gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? '抓取中...' : '刷新新闻'}
+              <span className="hidden sm:inline">{isRefreshing ? '抓取中...' : '刷新新闻'}</span>
             </Button>
+            <ThemeToggle />
+            <UserMenu />
           </div>
         </div>
       </div>

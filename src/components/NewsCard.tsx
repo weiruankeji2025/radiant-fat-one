@@ -51,6 +51,27 @@ export function NewsCard({ article, index }: NewsCardProps) {
       whileHover={{ scale: 1.01, y: -2 }}
       className="group relative bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300"
     >
+      {/* Cover Image */}
+      {article.image_url && (
+        <a
+          href={article.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          <div className="relative w-full h-40 overflow-hidden bg-muted">
+            <img
+              src={article.image_url}
+              alt={displayTitle}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          </div>
+        </a>
+      )}
+
       <div className="block p-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
