@@ -12,11 +12,13 @@ import {
   Newspaper, 
   BarChart3,
   Shield,
-  Lock
+  Lock,
+  Link2
 } from 'lucide-react'
 import { AdminStats } from '@/components/admin/AdminStats'
 import { AdminNewsTable } from '@/components/admin/AdminNewsTable'
 import { AdminUsersTable } from '@/components/admin/AdminUsersTable'
+import { AdminFriendLinks } from '@/components/admin/AdminFriendLinks'
 import type { User } from '@supabase/supabase-js'
 
 export default function AdminPage() {
@@ -152,6 +154,10 @@ export default function AdminPage() {
               <Users className="h-4 w-4" />
               用户管理
             </TabsTrigger>
+            <TabsTrigger value="links" className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              友情链接
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats">
@@ -164,6 +170,10 @@ export default function AdminPage() {
 
           <TabsContent value="users">
             <AdminUsersTable />
+          </TabsContent>
+
+          <TabsContent value="links">
+            <AdminFriendLinks />
           </TabsContent>
         </Tabs>
       </div>
