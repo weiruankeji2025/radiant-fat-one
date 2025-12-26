@@ -58,6 +58,23 @@ export async function refreshNews(category?: NewsCategory): Promise<{ success: b
   }
 }
 
+export async function translateArticle(
+  title: string, 
+  summary: string | null, 
+  targetLang: string
+): Promise<{ translatedTitle: string; translatedSummary: string | null }> {
+  const { data, error } = await supabase.functions.invoke('translate-news', {
+    body: { title, summary, targetLang },
+  })
+
+  if (error) {
+    console.error('Translation error:', error)
+    throw new Error('Translation failed')
+  }
+
+  return data
+}
+
 export const categoryLabels: Record<NewsCategory, string> = {
   politics: '政治',
   military: '军事',
@@ -75,3 +92,11 @@ export const categoryColors: Record<NewsCategory, string> = {
   world: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
   other: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
 }
+
+export const supportedLanguages = [
+  { code: 'zh-CN', label: '简体中文' },
+  { code: 'zh-TW', label: '繁體中文' },
+  { code: 'en', label: 'English' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
+]
