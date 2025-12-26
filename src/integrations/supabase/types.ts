@@ -114,6 +114,33 @@ export type Database = {
           },
         ]
       }
+      page_views: {
+        Row: {
+          id: string
+          page_path: string
+          referrer: string | null
+          user_agent: string | null
+          viewed_at: string
+          visitor_id: string
+        }
+        Insert: {
+          id?: string
+          page_path: string
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+          visitor_id: string
+        }
+        Update: {
+          id?: string
+          page_path?: string
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -143,22 +170,37 @@ export type Database = {
       }
       visitor_stats: {
         Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          device_type: string | null
           id: string
           last_active_at: string
+          region: string | null
           session_active: boolean | null
           visited_at: string
           visitor_id: string
         }
         Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_type?: string | null
           id?: string
           last_active_at?: string
+          region?: string | null
           session_active?: boolean | null
           visited_at?: string
           visitor_id: string
         }
         Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_type?: string | null
           id?: string
           last_active_at?: string
+          region?: string | null
           session_active?: boolean | null
           visited_at?: string
           visitor_id?: string
