@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, LogOut, LogIn, UserCircle } from 'lucide-react'
+import { User, LogOut, LogIn, UserCircle, Shield } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,20 +15,40 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export function UserMenu() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        setTimeout(() => checkAdminRole(session.user.id), 0)
+      } else {
+        setIsAdmin(false)
+      }
     })
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        checkAdminRole(session.user.id)
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  const checkAdminRole = async (userId: string) => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle()
+
+    setIsAdmin(!!data)
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -65,6 +85,13 @@ export function UserMenu() {
           <UserCircle className="w-4 h-4 mr-2" />
           用户中心
         </DropdownMenuItem>
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => navigate('/admin')}>
+            <Shield className="w-4 h-4 mr-2" />
+            管理后台
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-destructive">
           <LogOut className="w-4 h-4 mr-2" />
           退出登录
