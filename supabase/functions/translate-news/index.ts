@@ -23,104 +23,65 @@ Deno.serve(async (req) => {
 
     console.log(`Translating: ${title.substring(0, 50)}...`);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    const langNames: Record<string, string> = {
-      "zh-CN": "简体中文",
-      "zh-TW": "繁體中文",
-      "en": "English",
-      "ja": "日本語",
-      "ko": "한국어",
+    // Language code mapping for MyMemory API
+    const langCodeMap: Record<string, string> = {
+      "zh-CN": "zh-CN",
+      "zh-TW": "zh-TW",
+      "en": "en",
+      "ja": "ja",
+      "ko": "ko",
     };
 
-    const targetLangName = langNames[targetLang] || targetLang;
+    const targetCode = langCodeMap[targetLang] || "zh-CN";
 
-    const prompt = `Translate the following news content to ${targetLangName}. Keep the translation natural and professional. Return ONLY the JSON object without any markdown or code blocks.
+    // Detect source language (assume English if not Chinese)
+    const isChinese = /[\u4e00-\u9fa5]/.test(title);
+    const sourceLang = isChinese ? "zh-CN" : "en";
 
-Title: ${title}
-${summary ? `Summary: ${summary}` : ""}
+    // If already in target language, return original
+    if (sourceLang === targetCode) {
+      console.log("Content already in target language");
+      return new Response(
+        JSON.stringify({
+          translatedTitle: title,
+          translatedSummary: summary,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-Return in this exact JSON format:
-{"translatedTitle": "translated title here", "translatedSummary": "translated summary here or null if no summary"}`;
-
-    console.log("Calling AI gateway...");
-    
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "You are a professional translator. Translate news content accurately and naturally. Always respond with valid JSON only." },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`AI gateway error: ${response.status} - ${errorText}`);
+    // Translate title using MyMemory free API
+    const translateText = async (text: string): Promise<string> => {
+      if (!text) return "";
       
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded, please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetCode}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Translation API error: ${response.status}`);
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required, please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      
+      const data = await response.json();
+      
+      if (data.responseStatus !== 200) {
+        console.error("MyMemory API error:", data);
+        throw new Error(data.responseDetails || "Translation failed");
       }
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
+      
+      return data.responseData.translatedText;
+    };
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      console.error("No translation content returned");
-      throw new Error("No translation returned");
-    }
-
-    console.log("Parsing translation response...");
-
-    // Parse the JSON response, handling potential markdown code blocks
-    let parsed;
-    try {
-      // Try direct parse first
-      parsed = JSON.parse(content);
-    } catch {
-      // Try to extract JSON from markdown code blocks
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[1].trim());
-      } else {
-        // Try to find JSON object in the content
-        const objectMatch = content.match(/\{[\s\S]*\}/);
-        if (objectMatch) {
-          parsed = JSON.parse(objectMatch[0]);
-        } else {
-          console.error("Could not parse response:", content);
-          throw new Error("Could not parse translation response");
-        }
-      }
-    }
+    console.log("Calling MyMemory translation API...");
+    
+    const translatedTitle = await translateText(title);
+    const translatedSummary = summary ? await translateText(summary) : null;
 
     console.log("Translation successful");
 
     return new Response(
       JSON.stringify({
-        translatedTitle: parsed.translatedTitle,
-        translatedSummary: parsed.translatedSummary,
+        translatedTitle,
+        translatedSummary,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
