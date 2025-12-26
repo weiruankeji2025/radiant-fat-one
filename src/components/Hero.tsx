@@ -134,7 +134,7 @@ export function Hero() {
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
             >
-              <span className="font-bagel text-white text-xl tracking-wider">MOJJU</span>
+              <span className="font-display text-white text-xl font-bold tracking-wider">MOJJU</span>
             </motion.div>
 
             {/* Navigation Menu */}
@@ -199,7 +199,7 @@ export function Hero() {
                   const contactSection = document.getElementById('contact')
                   contactSection?.scrollIntoView({ behavior: 'smooth' })
                 }}
-                className="hidden sm:block bg-red-600 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-md hover:bg-red-700 gentle-animation ml-4 cursor-pointer"
+                className="hidden sm:block bg-primary backdrop-blur-sm text-primary-foreground font-semibold px-6 py-3 rounded-lg hover:bg-primary/90 shadow-md hover:shadow-lg hover:shadow-primary/20 gentle-animation ml-4 cursor-pointer"
               >
                 Book a Call
               </motion.button>
@@ -296,7 +296,7 @@ export function Hero() {
                 contactSection?.scrollIntoView({ behavior: 'smooth' })
                 setIsMobileMenuOpen(false)
               }}
-              className="bg-red-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-red-700 active:bg-red-800 gentle-animation mt-8 cursor-pointer"
+              className="bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-lg hover:bg-primary/90 shadow-md hover:shadow-lg hover:shadow-primary/20 active:scale-95 gentle-animation mt-8 cursor-pointer"
             >
               Book a Call
             </motion.button>
@@ -314,10 +314,10 @@ export function Hero() {
         className="absolute bottom-12 left-6 sm:left-8 lg:left-12 z-40"
       >
         <div className="max-w-2xl">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black leading-tight text-white">
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black leading-tight text-white tracking-tight">
             <span className="block">AI FILM</span>
             <span className="block">PRODUCTION</span>
-            <span className="block">WITHOUT LIMITS</span>
+            <span className="block bg-gradient-to-r from-white via-primary-glow to-accent-cyan bg-clip-text text-transparent">WITHOUT LIMITS</span>
           </h1>
         </div>
       </motion.div>

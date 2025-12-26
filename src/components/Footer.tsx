@@ -22,7 +22,7 @@ export function Footer() {
           {/* Logo and Description */}
           <div className="col-span-12 md:col-span-4">
             <div>
-              <div className="font-bagel text-background text-3xl tracking-wider mb-4">
+              <div className="font-display text-background text-3xl font-bold tracking-wider mb-4">
                 MOJJU
               </div>
               <p className="text-background/70 leading-relaxed mb-6">
@@ -92,7 +92,7 @@ export function Footer() {
           {/* Tools We Use Section */}
           <div className="col-span-12 md:col-span-8">
             <div>
-              <h4 className="font-black text-2xl text-background mb-4">TOOLS WE USE</h4>
+              <h4 className="font-display font-bold text-2xl text-background mb-4">TOOLS WE USE</h4>
               
               {/* AI Tools Description */}
               <p className="text-background/70 text-base mb-8 leading-relaxed">

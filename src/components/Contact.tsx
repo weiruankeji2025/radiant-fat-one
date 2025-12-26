@@ -58,25 +58,30 @@ export function Contact() {
   }, [])
 
   return (
-    <section id="contact" className="relative py-32 bg-card/30">
-      <div className="container mx-auto px-6 sm:px-8 lg:px-12">
+    <section id="contact" className="relative py-32 bg-gradient-to-b from-background via-secondary/20 to-background">
+      {/* Background elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-1/3 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-accent-cyan/5 rounded-full blur-2xl" />
+      </div>
+      
+      <div className="container mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         {/* Section Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-3 h-3 bg-accent-emerald rounded-full animate-pulse" />
-            <span className="text-sm font-semibold text-muted-foreground">
-              Let's Create Together
+            <div className="w-2 h-2 bg-accent-emerald rounded-full" />
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Get Started
             </span>
-            <div className="w-3 h-3 bg-accent-blue rounded-full animate-pulse" />
+            <div className="w-2 h-2 bg-primary rounded-full" />
           </div>
           
-          <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-8">
-            <span className="block mb-2">Ready to Light Up the Screen?</span>
-            
+          <h2 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-8 tracking-tight">
+            <span className="block mb-2">Ready to <span className="bg-gradient-to-r from-primary to-accent-cyan bg-clip-text text-transparent">Create?</span></span>
           </h2>
           
           <p className="text-2xl lg:text-3xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-            Book a discovery call to discuss your project and see how we can bring your vision to cinematic reality
+            Book a discovery call to discuss your project and see how we can bring your vision to life
           </p>
         </div>
 

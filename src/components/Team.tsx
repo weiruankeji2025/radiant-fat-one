@@ -110,7 +110,13 @@ export function Team() {
       minHeight: '0', 
       maxHeight: 'none' 
     }}>
-      <div className="container mx-auto px-6 sm:px-8 lg:px-12" style={{ 
+      {/* Background elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 right-1/4 w-96 h-96 bg-accent-violet/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-primary/5 rounded-full blur-2xl" />
+      </div>
+      
+      <div className="container mx-auto px-6 sm:px-8 lg:px-12 relative z-10" style={{ 
         overflow: 'visible', 
         height: 'auto', 
         minHeight: '0', 
@@ -120,16 +126,16 @@ export function Team() {
         {/* Section Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-3 h-3 bg-accent-emerald rounded-full animate-pulse" />
-            <span className="text-sm font-semibold text-muted-foreground">
-              Meet the Outlaws
+            <div className="w-2 h-2 bg-accent-emerald rounded-full" />
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Meet the Team
             </span>
-            <div className="w-3 h-3 bg-accent-blue rounded-full animate-pulse" />
+            <div className="w-2 h-2 bg-primary rounded-full" />
           </div>
           
-          <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-8 text-foreground">
-            <span className="block mb-2">These people are</span>
-            <span className="block text-foreground">WANTED</span>
+          <h2 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-8 text-foreground tracking-tight">
+            <span className="block mb-2">Our Creative</span>
+            <span className="block bg-gradient-to-r from-primary to-accent-violet bg-clip-text text-transparent">Experts</span>
           </h2>
           
           <p className="text-2xl lg:text-3xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">

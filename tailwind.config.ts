@@ -18,7 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        bagel: ['Bagel Fat One', 'cursive'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'sans-serif'],
       },
       colors: {
         border: "var(--border)",
@@ -29,6 +30,7 @@ export default {
         primary: {
           DEFAULT: "var(--primary)",
           foreground: "var(--primary-foreground)",
+          glow: "var(--primary-glow)",
         },
         secondary: {
           DEFAULT: "var(--secondary)",
@@ -45,9 +47,9 @@ export default {
         accent: {
           DEFAULT: "var(--accent)",
           foreground: "var(--accent-foreground)",
-          blue: "var(--accent-blue)",
+          cyan: "var(--accent-cyan)",
+          violet: "var(--accent-violet)",
           emerald: "var(--accent-emerald)",
-          purple: "var(--accent-purple)",
         },
         popover: {
           DEFAULT: "var(--popover)",
@@ -57,6 +59,17 @@ export default {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",
         },
+      },
+      backgroundImage: {
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-accent': 'var(--gradient-accent)',
+        'gradient-subtle': 'var(--gradient-subtle)',
+      },
+      boxShadow: {
+        'sm': 'var(--shadow-sm)',
+        'md': 'var(--shadow-md)',
+        'lg': 'var(--shadow-lg)',
+        'glow': 'var(--shadow-glow)',
       },
       borderRadius: {
         lg: "var(--radius)",

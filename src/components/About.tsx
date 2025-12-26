@@ -54,18 +54,13 @@ export function About() {
   }, [])
 
   return (
-    <section id="about" className="relative py-20 bg-background overflow-hidden">
+    <section id="about" className="relative py-24 bg-background overflow-hidden">
       
-      {/* Cinematic Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-card/20 to-background" />
-      
-      {/* Film Grain Effect */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
-        <div className="w-full h-full" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0,0,0,0.8) 1px, transparent 0)`,
-          backgroundSize: '3px 3px',
-          animation: 'filmGrain 8s infinite'
-        }} />
+      {/* Modern Background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-secondary/30 via-background to-secondary/30" />
+        <div className="absolute top-1/4 left-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-accent-violet/5 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
@@ -73,19 +68,19 @@ export function About() {
         {/* Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-3 h-3 bg-accent-emerald rounded-full animate-pulse" />
-            <span className="text-sm font-semibold text-muted-foreground">
-              Behind the Scenes
+            <div className="w-2 h-2 bg-accent-emerald rounded-full" />
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Our Process
             </span>
-            <div className="w-3 h-3 bg-accent-blue rounded-full animate-pulse" />
+            <div className="w-2 h-2 bg-primary rounded-full" />
           </div>
           
-          <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-6 text-foreground">
-            How We Create Magic
+          <h2 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black leading-tight mb-6 text-foreground tracking-tight">
+            How We Create <span className="bg-gradient-to-r from-accent-emerald to-primary bg-clip-text text-transparent">Magic</span>
           </h2>
           
           <p className="text-xl text-muted-foreground leading-relaxed max-w-3xl mx-auto">
-            Watch our process unfold frame by frame
+            A streamlined process designed for exceptional results
           </p>
         </div>
 
