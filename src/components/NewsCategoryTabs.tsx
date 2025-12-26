@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Newspaper, Shield, Cpu, TrendingUp, Globe2, LayoutGrid, Flag, Flame, Users, MapPin } from 'lucide-react'
+import { Newspaper, Shield, Cpu, TrendingUp, Globe2, LayoutGrid, Flag, Flame, Users, MapPin, Zap } from 'lucide-react'
 import { NewsCategory, categoryLabels } from '@/lib/api/news'
 
 interface NewsCategoryTabsProps {
@@ -9,6 +9,7 @@ interface NewsCategoryTabsProps {
 
 const categories: { key: NewsCategory | null; icon: React.ReactNode }[] = [
   { key: null, icon: <LayoutGrid className="w-4 h-4" /> },
+  { key: 'cnmd', icon: <Zap className="w-4 h-4" /> },
   { key: 'politics', icon: <Newspaper className="w-4 h-4" /> },
   { key: 'military', icon: <Shield className="w-4 h-4" /> },
   { key: 'technology', icon: <Cpu className="w-4 h-4" /> },
