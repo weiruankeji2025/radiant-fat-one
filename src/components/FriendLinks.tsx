@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ExternalLink, Globe } from 'lucide-react'
 import { fetchFriendLinks, FriendLink } from '@/lib/api/friendLinks'
+import { FriendLinkApplicationForm } from './FriendLinkApplicationForm'
 
 export function FriendLinks() {
   const [links, setLinks] = useState<FriendLink[]>([])
@@ -36,14 +37,17 @@ export function FriendLinks() {
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
-        <motion.h2
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-2xl font-bold text-center mb-8 text-foreground"
+          className="flex items-center justify-center gap-4 mb-8"
         >
-          友情链接
-        </motion.h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            友情链接
+          </h2>
+          <FriendLinkApplicationForm />
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0 }}
