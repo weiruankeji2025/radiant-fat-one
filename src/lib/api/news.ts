@@ -85,7 +85,7 @@ export const categoryLabels: Record<NewsCategory, string> = {
   russia_ukraine: '俄乌',
   korea: '朝韩',
   southeast_asia: '东南亚',
-  cnmd: 'CNMD专栏',
+  cnmd: 'CNMD NEWS',
   other: '其他',
 }
 
