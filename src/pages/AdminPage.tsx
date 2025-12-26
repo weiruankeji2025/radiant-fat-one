@@ -19,6 +19,7 @@ import { AdminStats } from '@/components/admin/AdminStats'
 import { AdminNewsTable } from '@/components/admin/AdminNewsTable'
 import { AdminUsersTable } from '@/components/admin/AdminUsersTable'
 import { AdminFriendLinks } from '@/components/admin/AdminFriendLinks'
+import { AdminFriendLinkApplications } from '@/components/admin/AdminFriendLinkApplications'
 import type { User } from '@supabase/supabase-js'
 
 export default function AdminPage() {
@@ -158,6 +159,10 @@ export default function AdminPage() {
               <Link2 className="h-4 w-4" />
               友情链接
             </TabsTrigger>
+            <TabsTrigger value="applications" className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              友链申请
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats">
@@ -174,6 +179,10 @@ export default function AdminPage() {
 
           <TabsContent value="links">
             <AdminFriendLinks />
+          </TabsContent>
+
+          <TabsContent value="applications">
+            <AdminFriendLinkApplications />
           </TabsContent>
         </Tabs>
       </div>
