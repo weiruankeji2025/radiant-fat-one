@@ -70,24 +70,56 @@ interface NewsArticle {
   published_at: string | null
 }
 
-async function verifyAuth(req: Request): Promise<{ user: any; error: string | null }> {
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return { user: null, error: 'Authorization header required' }
+// 超时控制的fetch
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+    return response
+  } finally {
+    clearTimeout(timeout)
   }
+}
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
-  )
-
-  const { data: { user }, error } = await supabaseClient.auth.getUser()
-  if (error || !user) {
-    return { user: null, error: 'Invalid token' }
+// 重试机制
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  maxRetries = 2, 
+  timeoutMs = 15000
+): Promise<Response | null> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, options, timeoutMs)
+      if (response.ok) return response
+      
+      // 如果是客户端错误（4xx），不重试
+      if (response.status >= 400 && response.status < 500) {
+        console.log(`Client error ${response.status} for ${url}, not retrying`)
+        return null
+      }
+      
+      console.log(`Attempt ${attempt + 1} failed with status ${response.status}, retrying...`)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log(`Attempt ${attempt + 1} timed out for ${url}`)
+      } else {
+        console.log(`Attempt ${attempt + 1} error:`, error)
+      }
+    }
+    
+    // 等待后重试
+    if (attempt < maxRetries) {
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+    }
   }
-
-  return { user, error: null }
+  
+  return null
 }
 
 // 深度抓取 cnmdnews.com 全部新闻
@@ -106,7 +138,7 @@ async function crawlWeiruanNews(
   return crawlSiteDeep(firecrawlApiKey, 'https://www.weiruan.org/', '威软科技', category)
 }
 
-// 通用深度抓取函数
+// 通用深度抓取函数 - 增强稳定性
 async function crawlSiteDeep(
   firecrawlApiKey: string,
   siteUrl: string,
@@ -118,25 +150,34 @@ async function crawlSiteDeep(
   try {
     // 首先使用 map API 获取网站所有URL
     console.log(`Step 1: Mapping ${siteUrl} to discover all URLs...`)
-    const mapResponse = await fetch('https://api.firecrawl.dev/v1/map', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
+    const mapResponse = await fetchWithRetry(
+      'https://api.firecrawl.dev/v1/map',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: siteUrl,
+          limit: 2000, // 减少限制以提高稳定性
+          includeSubdomains: false,
+        }),
       },
-      body: JSON.stringify({
-        url: siteUrl,
-        limit: 5000,
-        includeSubdomains: false,
-      }),
-    })
+      2,
+      20000
+    )
     
     let urlsToScrape: string[] = []
     
-    if (mapResponse.ok) {
-      const mapData = await mapResponse.json()
-      urlsToScrape = mapData.data?.links || mapData.links || []
-      console.log(`Found ${urlsToScrape.length} URLs from ${siteUrl}`)
+    if (mapResponse) {
+      try {
+        const mapData = await mapResponse.json()
+        urlsToScrape = mapData.data?.links || mapData.links || []
+        console.log(`Found ${urlsToScrape.length} URLs from ${siteUrl}`)
+      } catch (e) {
+        console.error('Failed to parse map response:', e)
+      }
     }
     
     // 过滤出文章URL
@@ -153,77 +194,97 @@ async function crawlSiteDeep(
     
     console.log(`Filtered to ${newsUrls.length} potential article URLs`)
     
-    // Step 2: 使用 crawl API 深度抓取
+    // Step 2: 使用 crawl API 深度抓取 - 减少配置以提高稳定性
     console.log(`Step 2: Starting crawl job for ${siteUrl}...`)
-    const crawlStartResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: siteUrl,
-        limit: 500,
-        maxDepth: 6,
-        scrapeOptions: {
-          formats: ['markdown', 'html'],
-          onlyMainContent: true,
-        },
-      }),
-    })
-
-    if (!crawlStartResponse.ok) {
-      console.error(`Failed to start crawl: ${crawlStartResponse.status}`)
-      return scrapeNewsFromUrl(firecrawlApiKey, siteUrl, sourceName, category)
-    }
-
-    const crawlStartData = await crawlStartResponse.json()
-    console.log('Crawl response:', JSON.stringify(crawlStartData).substring(0, 500))
-
-    const crawlId = crawlStartData.id
-    if (!crawlId) {
-      console.error('Crawl did not return an id')
-      return []
-    }
-
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-    // 轮询最多 ~45 秒
-    let crawlResult: any = null
-    for (let attempt = 0; attempt < 15; attempt++) {
-      await sleep(3000)
-
-      const statusResp = await fetch(`https://api.firecrawl.dev/v1/crawl/${crawlId}`, {
-        method: 'GET',
+    const crawlStartResponse = await fetchWithRetry(
+      'https://api.firecrawl.dev/v1/crawl',
+      {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${firecrawlApiKey}`,
           'Content-Type': 'application/json',
         },
-      })
+        body: JSON.stringify({
+          url: siteUrl,
+          limit: 100, // 减少限制以提高稳定性
+          maxDepth: 3, // 减少深度
+          scrapeOptions: {
+            formats: ['markdown'],
+            onlyMainContent: true,
+          },
+        }),
+      },
+      2,
+      30000
+    )
 
-      if (!statusResp.ok) {
-        console.error(`Failed to check crawl status: ${statusResp.status}`)
+    if (!crawlStartResponse) {
+      console.error(`Failed to start crawl for ${siteUrl}`)
+      return scrapeNewsFromUrl(firecrawlApiKey, siteUrl, sourceName, category)
+    }
+
+    let crawlStartData
+    try {
+      crawlStartData = await crawlStartResponse.json()
+      console.log('Crawl response:', JSON.stringify(crawlStartData).substring(0, 300))
+    } catch (e) {
+      console.error('Failed to parse crawl start response:', e)
+      return scrapeNewsFromUrl(firecrawlApiKey, siteUrl, sourceName, category)
+    }
+
+    const crawlId = crawlStartData.id
+    if (!crawlId) {
+      console.error('Crawl did not return an id')
+      return scrapeNewsFromUrl(firecrawlApiKey, siteUrl, sourceName, category)
+    }
+
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+    // 轮询最多 ~30 秒
+    let crawlResult: any = null
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await sleep(3000)
+
+      const statusResp = await fetchWithRetry(
+        `https://api.firecrawl.dev/v1/crawl/${crawlId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${firecrawlApiKey}`,
+            'Content-Type': 'application/json',
+          },
+        },
+        1,
+        10000
+      )
+
+      if (!statusResp) {
+        console.error(`Failed to check crawl status`)
         continue
       }
 
-      const statusData = await statusResp.json()
-      const status = statusData.status || statusData.data?.status
-      console.log(`Crawl status (attempt ${attempt + 1}/15): ${status}`)
+      try {
+        const statusData = await statusResp.json()
+        const status = statusData.status || statusData.data?.status
+        console.log(`Crawl status (attempt ${attempt + 1}/10): ${status}`)
 
-      if (status === 'completed') {
-        crawlResult = statusData
-        break
-      }
+        if (status === 'completed') {
+          crawlResult = statusData
+          break
+        }
 
-      if (status === 'failed' || status === 'cancelled') {
-        console.error('Crawl failed:', JSON.stringify(statusData).substring(0, 500))
-        return []
+        if (status === 'failed' || status === 'cancelled') {
+          console.error('Crawl failed:', JSON.stringify(statusData).substring(0, 300))
+          break
+        }
+      } catch (e) {
+        console.error('Failed to parse status response:', e)
       }
     }
 
     if (!crawlResult) {
-      console.error('Crawl did not complete in time; returning empty for now')
-      return []
+      console.log('Crawl did not complete in time, falling back to scrape')
+      return scrapeNewsFromUrl(firecrawlApiKey, siteUrl, sourceName, category)
     }
 
     const articles: NewsArticle[] = []
@@ -257,7 +318,7 @@ async function crawlSiteDeep(
       
       // 从 markdown 中提取更多标题
       const titleMatches = markdown.match(/^#{1,3}\s+(.+)$/gm) || []
-      for (const match of titleMatches.slice(0, 5)) {
+      for (const match of titleMatches.slice(0, 3)) {
         const title = match.replace(/^#+\s+/, '').trim()
         if (title.length >= 10 && title.length <= 300) {
           articles.push({
@@ -283,7 +344,8 @@ async function crawlSiteDeep(
     return uniqueArticles
   } catch (error) {
     console.error(`Error crawling ${siteUrl}:`, error)
-    return []
+    // 失败时尝试简单抓取
+    return scrapeNewsFromUrl(firecrawlApiKey, siteUrl, sourceName, category)
   }
 }
 
@@ -296,25 +358,37 @@ async function scrapeNewsFromUrl(
   console.log(`Scraping news from ${sourceName}: ${url}`)
   
   try {
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
+    const response = await fetchWithRetry(
+      'https://api.firecrawl.dev/v1/scrape',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          formats: ['markdown', 'links'],
+          onlyMainContent: true,
+        }),
       },
-      body: JSON.stringify({
-        url,
-        formats: ['markdown', 'links'],
-        onlyMainContent: true,
-      }),
-    })
+      2,
+      15000
+    )
 
-    if (!response.ok) {
-      console.error(`Failed to scrape ${url}: ${response.status}`)
+    if (!response) {
+      console.error(`Failed to scrape ${url} after retries`)
       return []
     }
 
-    const data = await response.json()
+    let data
+    try {
+      data = await response.json()
+    } catch (e) {
+      console.error(`Failed to parse response from ${url}:`, e)
+      return []
+    }
+    
     const markdown = data.data?.markdown || data.markdown || ''
     const links = data.data?.links || data.links || []
     const metadata = data.data?.metadata || data.metadata || {}
@@ -398,13 +472,19 @@ Deno.serve(async (req) => {
     console.log(`Starting to scrape ${sourcesToScrape.length} news sources`)
 
     const allArticles: NewsArticle[] = []
+    const errors: string[] = []
 
     // 特殊处理 cnmdnews.com - 深度抓取
     const cnmdSource = sourcesToScrape.find(s => s.name === 'CNMD News')
     if (cnmdSource) {
       console.log('Deep crawling cnmdnews.com...')
-      const cnmdArticles = await crawlCnmdNews(firecrawlApiKey, cnmdSource.category)
-      allArticles.push(...cnmdArticles)
+      try {
+        const cnmdArticles = await crawlCnmdNews(firecrawlApiKey, cnmdSource.category)
+        allArticles.push(...cnmdArticles)
+      } catch (e) {
+        console.error('CNMD crawl failed:', e)
+        errors.push('CNMD News')
+      }
       sourcesToScrape = sourcesToScrape.filter(s => s.name !== 'CNMD News')
     }
 
@@ -412,56 +492,82 @@ Deno.serve(async (req) => {
     const weiruanSource = sourcesToScrape.find(s => s.name === '威软科技')
     if (weiruanSource) {
       console.log('Deep crawling weiruan.org...')
-      const weiruanArticles = await crawlWeiruanNews(firecrawlApiKey, weiruanSource.category)
-      allArticles.push(...weiruanArticles)
+      try {
+        const weiruanArticles = await crawlWeiruanNews(firecrawlApiKey, weiruanSource.category)
+        allArticles.push(...weiruanArticles)
+      } catch (e) {
+        console.error('Weiruan crawl failed:', e)
+        errors.push('威软科技')
+      }
       sourcesToScrape = sourcesToScrape.filter(s => s.name !== '威软科技')
     }
 
-    // 并行爬取其他新闻源（限制并发数）
-    const batchSize = 3
+    // 并行爬取其他新闻源（限制并发数）- 减少批次大小以提高稳定性
+    const batchSize = 2
     for (let i = 0; i < sourcesToScrape.length; i += batchSize) {
       const batch = sourcesToScrape.slice(i, i + batchSize)
-      const results = await Promise.all(
+      const results = await Promise.allSettled(
         batch.map(source => 
           scrapeNewsFromUrl(firecrawlApiKey, source.url, source.name, source.category)
         )
       )
-      allArticles.push(...results.flat())
+      
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j]
+        if (result.status === 'fulfilled') {
+          allArticles.push(...result.value)
+        } else {
+          console.error(`Failed to scrape ${batch[j].name}:`, result.reason)
+          errors.push(batch[j].name)
+        }
+      }
     }
 
     console.log(`Total articles scraped: ${allArticles.length}`)
+    if (errors.length > 0) {
+      console.log(`Sources with errors: ${errors.join(', ')}`)
+    }
 
-    // 插入新闻到数据库（忽略重复）
+    // 插入新闻到数据库（批量upsert以提高效率）
     let insertedCount = 0
-    for (const article of allArticles) {
-      const { error } = await supabase
+    const batchInsertSize = 50
+    
+    for (let i = 0; i < allArticles.length; i += batchInsertSize) {
+      const batch = allArticles.slice(i, i + batchInsertSize)
+      
+      const { error, count } = await supabase
         .from('news_articles')
-        .upsert(article, { 
+        .upsert(batch, { 
           onConflict: 'source_url',
           ignoreDuplicates: true 
         })
       
       if (!error) {
-        insertedCount++
+        insertedCount += batch.length
       } else {
-        console.log(`Duplicate or error for: ${article.title.substring(0, 50)}...`)
+        console.error('Batch insert error:', error.message)
       }
     }
 
-    console.log(`Inserted ${insertedCount} new articles`)
+    console.log(`Inserted ${insertedCount} articles (including updates)`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         scraped: allArticles.length,
-        inserted: insertedCount 
+        inserted: insertedCount,
+        errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     console.error('Error in fetch-news function:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        partial: true // 表示部分成功
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
