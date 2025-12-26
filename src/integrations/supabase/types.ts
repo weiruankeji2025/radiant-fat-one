@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      news_articles: {
+        Row: {
+          category: Database["public"]["Enums"]["news_category"]
+          content: string | null
+          created_at: string
+          fetched_at: string
+          id: string
+          image_url: string | null
+          published_at: string | null
+          source_name: string
+          source_url: string
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["news_category"]
+          content?: string | null
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string | null
+          source_name: string
+          source_url: string
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["news_category"]
+          content?: string | null
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string | null
+          source_name?: string
+          source_url?: string
+          summary?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +64,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      news_category:
+        | "politics"
+        | "military"
+        | "technology"
+        | "economy"
+        | "world"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +197,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      news_category: [
+        "politics",
+        "military",
+        "technology",
+        "economy",
+        "world",
+        "other",
+      ],
+    },
   },
 } as const
