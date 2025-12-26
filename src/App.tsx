@@ -14,6 +14,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const { toast } = useToast()
 
   const loadNews = useCallback(async () => {
@@ -83,12 +84,25 @@ export default function App() {
     setActiveCategory(category)
   }
 
+  // 过滤搜索结果
+  const filteredArticles = articles.filter(article => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      article.title.toLowerCase().includes(query) ||
+      (article.summary?.toLowerCase().includes(query)) ||
+      (article.content?.toLowerCase().includes(query))
+    )
+  })
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <NewsHeader 
         onRefresh={handleRefresh} 
         isRefreshing={isRefreshing}
         lastUpdated={lastUpdated}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
       
       <NewsCategoryTabs 
@@ -97,7 +111,12 @@ export default function App() {
       />
       
       <main className="flex-1 container mx-auto px-4 py-6">
-        <NewsGrid articles={articles} isLoading={isLoading} />
+        {searchQuery && (
+          <p className="text-sm text-muted-foreground mb-4">
+            搜索 "{searchQuery}" 找到 {filteredArticles.length} 条结果
+          </p>
+        )}
+        <NewsGrid articles={filteredArticles} isLoading={isLoading} />
       </main>
       
       <NewsFooter />
