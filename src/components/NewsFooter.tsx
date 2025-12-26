@@ -1,4 +1,4 @@
-import weiruanLogo from '@/assets/weiruan-logo.png'
+import weiruanLogo from '@/assets/weiruan-news-logo.jpg'
 
 export function NewsFooter() {
   return (

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { RefreshCw, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import weiruanLogo from '@/assets/weiruan-logo.png'
+import weiruanLogo from '@/assets/weiruan-news-logo.jpg'
 
 interface NewsHeaderProps {
   onRefresh: () => void
