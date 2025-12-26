@@ -40,6 +40,9 @@ const NEWS_SOURCES = [
   // CNMD专栏 - 专门抓取cnmdnews.com全部内容
   { url: 'https://www.cnmdnews.com/', name: 'CNMD News', category: 'cnmd' },
   
+  // 威软科技 - 抓取weiruan.org全部内容
+  { url: 'https://www.weiruan.org/', name: '威软科技', category: 'weiruan' },
+  
   // 俄乌冲突
   { url: 'https://www.reuters.com/world/europe/', name: 'Reuters Europe', category: 'russia_ukraine' },
   { url: 'https://www.bbc.com/news/world/europe', name: 'BBC Europe', category: 'russia_ukraine' },
@@ -92,11 +95,29 @@ async function crawlCnmdNews(
   firecrawlApiKey: string,
   category: string
 ): Promise<NewsArticle[]> {
-  console.log('Deep crawling cnmdnews.com for ALL news articles...')
+  return crawlSiteDeep(firecrawlApiKey, 'https://www.cnmdnews.com/', 'CNMD News', category)
+}
+
+// 深度抓取 weiruan.org 全部内容
+async function crawlWeiruanNews(
+  firecrawlApiKey: string,
+  category: string
+): Promise<NewsArticle[]> {
+  return crawlSiteDeep(firecrawlApiKey, 'https://www.weiruan.org/', '威软科技', category)
+}
+
+// 通用深度抓取函数
+async function crawlSiteDeep(
+  firecrawlApiKey: string,
+  siteUrl: string,
+  sourceName: string,
+  category: string
+): Promise<NewsArticle[]> {
+  console.log(`Deep crawling ${siteUrl} for ALL content...`)
   
   try {
     // 首先使用 map API 获取网站所有URL
-    console.log('Step 1: Mapping cnmdnews.com to discover all URLs...')
+    console.log(`Step 1: Mapping ${siteUrl} to discover all URLs...`)
     const mapResponse = await fetch('https://api.firecrawl.dev/v1/map', {
       method: 'POST',
       headers: {
@@ -104,8 +125,8 @@ async function crawlCnmdNews(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: 'https://www.cnmdnews.com/',
-        limit: 5000, // 获取最多5000个URL
+        url: siteUrl,
+        limit: 5000,
         includeSubdomains: false,
       }),
     })
@@ -114,26 +135,26 @@ async function crawlCnmdNews(
     
     if (mapResponse.ok) {
       const mapData = await mapResponse.json()
-      // Firecrawl v1 may nest results under data
       urlsToScrape = mapData.data?.links || mapData.links || []
-      console.log(`Found ${urlsToScrape.length} URLs from cnmdnews.com`)
+      console.log(`Found ${urlsToScrape.length} URLs from ${siteUrl}`)
     }
     
-    // 过滤出新闻文章URL（通常包含日期或特定路径模式）
+    // 过滤出文章URL
     const newsUrls = urlsToScrape.filter(url => {
-      const isArticle = url.includes('/20') || // 年份模式
+      const isArticle = url.includes('/20') || 
                        url.includes('/news/') ||
                        url.includes('/article/') ||
                        url.includes('/post/') ||
-                       url.match(/\/\d{4}\/\d{2}\//) // 日期格式
+                       url.includes('/blog/') ||
+                       url.match(/\/\d{4}\/\d{2}\//)
       const isNotAsset = !url.match(/\.(jpg|png|gif|css|js|pdf)$/i)
       return isArticle && isNotAsset
     })
     
-    console.log(`Filtered to ${newsUrls.length} potential news article URLs`)
+    console.log(`Filtered to ${newsUrls.length} potential article URLs`)
     
-    // Step 2: 使用 crawl API 深度抓取（Firecrawl crawl 为异步任务，需要轮询结果）
-    console.log('Step 2: Starting crawl job for cnmdnews.com...')
+    // Step 2: 使用 crawl API 深度抓取
+    console.log(`Step 2: Starting crawl job for ${siteUrl}...`)
     const crawlStartResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
       method: 'POST',
       headers: {
@@ -141,7 +162,7 @@ async function crawlCnmdNews(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: 'https://www.cnmdnews.com/',
+        url: siteUrl,
         limit: 500,
         maxDepth: 6,
         scrapeOptions: {
@@ -153,8 +174,7 @@ async function crawlCnmdNews(
 
     if (!crawlStartResponse.ok) {
       console.error(`Failed to start crawl: ${crawlStartResponse.status}`)
-      // 回退到普通抓取
-      return scrapeNewsFromUrl(firecrawlApiKey, 'https://www.cnmdnews.com/', 'CNMD News', category)
+      return scrapeNewsFromUrl(firecrawlApiKey, siteUrl, sourceName, category)
     }
 
     const crawlStartData = await crawlStartResponse.json()
@@ -208,29 +228,27 @@ async function crawlCnmdNews(
 
     const articles: NewsArticle[] = []
 
-    // 处理爬取结果（兼容 Firecrawl v1 的不同返回结构）
+    // 处理爬取结果
     const pages = Array.isArray(crawlResult.data)
       ? crawlResult.data
       : Array.isArray(crawlResult.data?.data)
         ? crawlResult.data.data
         : []
 
-    console.log(`Crawled ${pages.length} pages from cnmdnews.com`)
+    console.log(`Crawled ${pages.length} pages from ${siteUrl}`)
     
     for (const page of pages) {
       const markdown = page.markdown || page.data?.markdown || ''
       const metadata = page.metadata || page.data?.metadata || {}
-      const sourceUrl = metadata.sourceURL || metadata.sourceUrl || page.url || 'https://www.cnmdnews.com/'
+      const sourceUrl = metadata.sourceURL || metadata.sourceUrl || page.url || siteUrl
       
-      // 从页面标题提取新闻
       if (metadata.title && metadata.title.length > 10 && metadata.title.length < 300) {
-        // 检查是否是6个月内的新闻（通过URL或内容判断）
         articles.push({
           title: metadata.title,
           summary: metadata.description || null,
           content: markdown.substring(0, 1000) || null,
           source_url: sourceUrl,
-          source_name: 'CNMD News',
+          source_name: sourceName,
           category: category,
           image_url: metadata.ogImage || null,
           published_at: new Date().toISOString(),
@@ -247,7 +265,7 @@ async function crawlCnmdNews(
             summary: null,
             content: null,
             source_url: sourceUrl,
-            source_name: 'CNMD News',
+            source_name: sourceName,
             category: category,
             image_url: metadata.ogImage || null,
             published_at: new Date().toISOString(),
@@ -261,10 +279,10 @@ async function crawlCnmdNews(
       index === self.findIndex(a => a.title === article.title)
     )
     
-    console.log(`Found ${uniqueArticles.length} unique articles from cnmdnews.com`)
+    console.log(`Found ${uniqueArticles.length} unique articles from ${siteUrl}`)
     return uniqueArticles
   } catch (error) {
-    console.error('Error crawling cnmdnews.com:', error)
+    console.error(`Error crawling ${siteUrl}:`, error)
     return []
   }
 }
@@ -387,8 +405,16 @@ Deno.serve(async (req) => {
       console.log('Deep crawling cnmdnews.com...')
       const cnmdArticles = await crawlCnmdNews(firecrawlApiKey, cnmdSource.category)
       allArticles.push(...cnmdArticles)
-      // 从列表中移除，避免重复抓取
       sourcesToScrape = sourcesToScrape.filter(s => s.name !== 'CNMD News')
+    }
+
+    // 特殊处理 weiruan.org - 深度抓取
+    const weiruanSource = sourcesToScrape.find(s => s.name === '威软科技')
+    if (weiruanSource) {
+      console.log('Deep crawling weiruan.org...')
+      const weiruanArticles = await crawlWeiruanNews(firecrawlApiKey, weiruanSource.category)
+      allArticles.push(...weiruanArticles)
+      sourcesToScrape = sourcesToScrape.filter(s => s.name !== '威软科技')
     }
 
     // 并行爬取其他新闻源（限制并发数）

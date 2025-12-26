@@ -1,4 +1,5 @@
 import weiruanLogo from '@/assets/weiruan-news-logo.jpg'
+import { VisitorStats } from './VisitorStats'
 
 export function NewsFooter() {
   return (
@@ -14,6 +15,10 @@ export function NewsFooter() {
             自动聚合全球主流媒体新闻 · 政治 · 军事 · 科技 · 经济
           </p>
           
+          <VisitorStats />
+        </div>
+        
+        <div className="mt-4 pt-4 border-t border-border/50 flex flex-col md:flex-row items-center justify-center gap-4">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} WeiRuan. All rights reserved.
           </p>
