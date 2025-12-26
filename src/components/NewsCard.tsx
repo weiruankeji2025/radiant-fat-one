@@ -1,16 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Clock, Languages, Loader2 } from 'lucide-react'
-import { NewsArticle, categoryLabels, categoryColors, translateArticle, supportedLanguages } from '@/lib/api/news'
+import { ExternalLink, Clock, Loader2 } from 'lucide-react'
+import { NewsArticle, categoryLabels, categoryColors, translateArticle } from '@/lib/api/news'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useToast } from '@/hooks/use-toast'
 
 interface NewsCardProps {
   article: NewsArticle
@@ -21,8 +13,6 @@ export function NewsCard({ article, index }: NewsCardProps) {
   const [isTranslating, setIsTranslating] = useState(false)
   const [translatedTitle, setTranslatedTitle] = useState<string | null>(null)
   const [translatedSummary, setTranslatedSummary] = useState<string | null>(null)
-  const [currentLang, setCurrentLang] = useState<string | null>(null)
-  const { toast } = useToast()
 
   const formattedDate = article.published_at 
     ? new Date(article.published_at).toLocaleDateString('zh-CN', {
@@ -33,31 +23,22 @@ export function NewsCard({ article, index }: NewsCardProps) {
       })
     : null
 
-  const handleTranslate = async (langCode: string) => {
-    if (langCode === currentLang) {
-      // Reset to original
-      setTranslatedTitle(null)
-      setTranslatedSummary(null)
-      setCurrentLang(null)
-      return
+  // Auto-translate to Simplified Chinese on mount
+  useEffect(() => {
+    const autoTranslate = async () => {
+      setIsTranslating(true)
+      try {
+        const result = await translateArticle(article.title, article.summary, 'zh-CN')
+        setTranslatedTitle(result.translatedTitle)
+        setTranslatedSummary(result.translatedSummary)
+      } catch (error) {
+        console.error('Auto-translate failed:', error)
+      } finally {
+        setIsTranslating(false)
+      }
     }
-
-    setIsTranslating(true)
-    try {
-      const result = await translateArticle(article.title, article.summary, langCode)
-      setTranslatedTitle(result.translatedTitle)
-      setTranslatedSummary(result.translatedSummary)
-      setCurrentLang(langCode)
-    } catch (error) {
-      toast({
-        title: '翻译失败',
-        description: '请稍后重试',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsTranslating(false)
-    }
-  }
+    autoTranslate()
+  }, [article.id, article.title, article.summary])
 
   const displayTitle = translatedTitle || article.title
   const displaySummary = translatedSummary !== undefined ? translatedSummary : article.summary
@@ -80,38 +61,9 @@ export function NewsCard({ article, index }: NewsCardProps) {
             {categoryLabels[article.category]}
           </Badge>
           <div className="flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  disabled={isTranslating}
-                >
-                  {isTranslating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Languages className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {currentLang && (
-                  <DropdownMenuItem onClick={() => handleTranslate(currentLang)}>
-                    显示原文
-                  </DropdownMenuItem>
-                )}
-                {supportedLanguages.map((lang) => (
-                  <DropdownMenuItem 
-                    key={lang.code} 
-                    onClick={() => handleTranslate(lang.code)}
-                    className={currentLang === lang.code ? 'bg-accent' : ''}
-                  >
-                    {lang.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isTranslating && (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
             <a
               href={article.source_url}
               target="_blank"
@@ -131,11 +83,6 @@ export function NewsCard({ article, index }: NewsCardProps) {
         >
           <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
             {displayTitle}
-            {currentLang && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                已翻译
-              </Badge>
-            )}
           </h3>
         </a>
 
