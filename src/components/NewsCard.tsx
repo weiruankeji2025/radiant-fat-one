@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { ExternalLink, Clock, Loader2 } from 'lucide-react'
 import { NewsArticle, categoryLabels, categoryColors, translateArticle } from '@/lib/api/news'
 import { Badge } from '@/components/ui/badge'
+import newsPlaceholder from '@/assets/news-placeholder.jpg'
 
 interface NewsCardProps {
   article: NewsArticle
@@ -51,26 +52,24 @@ export function NewsCard({ article, index }: NewsCardProps) {
       whileHover={{ scale: 1.01, y: -2 }}
       className="group relative bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300"
     >
-      {/* Cover Image */}
-      {article.image_url && (
-        <a
-          href={article.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          <div className="relative w-full h-40 overflow-hidden bg-muted">
-            <img
-              src={article.image_url}
-              alt={displayTitle}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none'
-              }}
-            />
-          </div>
-        </a>
-      )}
+      {/* Article Image */}
+      <a
+        href={article.source_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+      >
+        <div className="relative w-full h-40 overflow-hidden bg-muted">
+          <img
+            src={article.image_url || newsPlaceholder}
+            alt={displayTitle}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = newsPlaceholder
+            }}
+          />
+        </div>
+      </a>
 
       <div className="block p-5">
         {/* Header */}
