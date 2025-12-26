@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Volume2, VolumeX, Menu, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import weiruanLogo from '@/assets/weiruan-logo.png'
 
 export function Hero() {
   const [isMuted, setIsMuted] = useState(true)
@@ -129,12 +130,13 @@ export function Hero() {
             {/* Logo */}
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="flex items-center cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer"
               onClick={() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
             >
-              <span className="font-display text-white text-xl font-bold tracking-wider">MOJJU</span>
+              <img src={weiruanLogo} alt="WeiRuan Logo" className="w-8 h-8 object-contain" />
+              <span className="font-display text-white text-xl font-bold tracking-wider">WeiRuan</span>
             </motion.div>
 
             {/* Navigation Menu */}

@@ -1,5 +1,7 @@
 'use client'
 
+import weiruanLogo from '@/assets/weiruan-logo.png'
+
 export function Footer() {
   const aiTools = [
     'Runway Gen-4',
@@ -22,8 +24,9 @@ export function Footer() {
           {/* Logo and Description */}
           <div className="col-span-12 md:col-span-4">
             <div>
-              <div className="font-display text-background text-3xl font-bold tracking-wider mb-4">
-                MOJJU
+              <div className="flex items-center gap-3 mb-4">
+                <img src={weiruanLogo} alt="WeiRuan Logo" className="w-10 h-10 object-contain" />
+                <span className="font-display text-background text-3xl font-bold tracking-wider">WeiRuan</span>
               </div>
               <p className="text-background/70 leading-relaxed mb-6">
                 Revolutionizing video production with intelligent AI that understands 
@@ -118,7 +121,7 @@ export function Footer() {
         <div className="border-t border-background/20 pt-8 mt-16">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-sm text-background/70 mb-4 md:mb-0">
-              © 2025 MOJJU. All rights reserved.
+              © 2025 WeiRuan. All rights reserved.
             </div>
             <div className="text-sm text-background/70">
               2847 HIGHLAND AVE. SUITE 310 BIRMINGHAM 35205, AL, USA
