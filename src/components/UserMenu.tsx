@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, LogOut, LogIn } from 'lucide-react'
+import { User, LogOut, LogIn, UserCircle } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
@@ -58,6 +59,11 @@ export function UserMenu() {
       <DropdownMenuContent align="end">
         <DropdownMenuItem className="text-muted-foreground text-xs">
           {user.email}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/profile')}>
+          <UserCircle className="w-4 h-4 mr-2" />
+          用户中心
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout} className="text-destructive">
           <LogOut className="w-4 h-4 mr-2" />

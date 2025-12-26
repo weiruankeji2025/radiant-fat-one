@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Clock, Loader2 } from 'lucide-react'
+import { ExternalLink, Clock, Loader2, Heart } from 'lucide-react'
 import { NewsArticle, categoryLabels, categoryColors, translateArticle } from '@/lib/api/news'
 import { Badge } from '@/components/ui/badge'
+import { supabase } from '@/integrations/supabase/client'
 import newsPlaceholder from '@/assets/news-placeholder.jpg'
 
 interface NewsCardProps {
@@ -14,6 +15,8 @@ export function NewsCard({ article, index }: NewsCardProps) {
   const [isTranslating, setIsTranslating] = useState(false)
   const [translatedTitle, setTranslatedTitle] = useState<string | null>(null)
   const [translatedSummary, setTranslatedSummary] = useState<string | null>(null)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
   const formattedDate = article.published_at 
     ? new Date(article.published_at).toLocaleDateString('zh-CN', {
@@ -23,6 +26,27 @@ export function NewsCard({ article, index }: NewsCardProps) {
         minute: '2-digit',
       })
     : null
+
+  // Check auth state and favorite status
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id)
+        checkFavoriteStatus(session.user.id)
+      }
+    })
+  }, [article.id])
+
+  const checkFavoriteStatus = async (uid: string) => {
+    const { data } = await supabase
+      .from('news_favorites')
+      .select('id')
+      .eq('user_id', uid)
+      .eq('article_id', article.id)
+      .maybeSingle()
+    
+    setIsFavorite(!!data)
+  }
 
   // Auto-translate to Simplified Chinese on mount
   useEffect(() => {
@@ -41,6 +65,43 @@ export function NewsCard({ article, index }: NewsCardProps) {
     autoTranslate()
   }, [article.id, article.title, article.summary])
 
+  const handleArticleClick = async () => {
+    if (!userId) return
+    
+    // Record view
+    await supabase
+      .from('news_views')
+      .upsert({
+        user_id: userId,
+        article_id: article.id,
+        viewed_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,article_id' })
+  }
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!userId) return
+
+    if (isFavorite) {
+      await supabase
+        .from('news_favorites')
+        .delete()
+        .eq('user_id', userId)
+        .eq('article_id', article.id)
+      setIsFavorite(false)
+    } else {
+      await supabase
+        .from('news_favorites')
+        .insert({
+          user_id: userId,
+          article_id: article.id,
+        })
+      setIsFavorite(true)
+    }
+  }
+
   const displayTitle = translatedTitle || article.title
   const displaySummary = translatedSummary !== undefined ? translatedSummary : article.summary
 
@@ -58,6 +119,7 @@ export function NewsCard({ article, index }: NewsCardProps) {
         target="_blank"
         rel="noopener noreferrer"
         className="block"
+        onClick={handleArticleClick}
       >
         <div className="relative w-full h-40 overflow-hidden bg-muted">
           <img
@@ -84,11 +146,26 @@ export function NewsCard({ article, index }: NewsCardProps) {
             {isTranslating && (
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             )}
+            {userId && (
+              <button
+                onClick={handleFavoriteClick}
+                className="p-1 rounded hover:bg-muted transition-colors"
+              >
+                <Heart 
+                  className={`w-4 h-4 transition-colors ${
+                    isFavorite 
+                      ? 'fill-red-500 text-red-500' 
+                      : 'text-muted-foreground hover:text-red-500'
+                  }`} 
+                />
+              </button>
+            )}
             <a
               href={article.source_url}
               target="_blank"
               rel="noopener noreferrer"
               className="opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={handleArticleClick}
             >
               <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-primary" />
             </a>
@@ -100,6 +177,7 @@ export function NewsCard({ article, index }: NewsCardProps) {
           href={article.source_url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={handleArticleClick}
         >
           <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
             {displayTitle}
