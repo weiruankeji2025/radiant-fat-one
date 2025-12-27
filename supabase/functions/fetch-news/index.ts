@@ -70,6 +70,72 @@ interface NewsArticle {
   published_at: string | null
 }
 
+// 排除的URL模式 - 登录页、管理页、无实际内容的页面
+const EXCLUDED_URL_PATTERNS = [
+  '/wp-login',
+  '/wp-admin',
+  '/login',
+  '/signin',
+  '/sign-in',
+  '/register',
+  '/signup',
+  '/sign-up',
+  '/admin',
+  '/dashboard',
+  '/account',
+  '/cart',
+  '/checkout',
+  '/feed',
+  '/rss',
+  '/xmlrpc',
+  '/wp-json',
+  '/api/',
+  '/search',
+  '/tag/',
+  '/category/',
+  '/author/',
+  '/page/',
+  '/attachment/',
+  '/comments/',
+]
+
+// 排除的标题关键词 - 登录、管理等非内容页面
+const EXCLUDED_TITLE_PATTERNS = [
+  '登录',
+  '登陆',
+  'Login',
+  'Sign In',
+  'Sign Up',
+  '注册',
+  'WordPress',
+  'Dashboard',
+  '管理',
+  '后台',
+  'Admin',
+  'Error',
+  '错误',
+  '404',
+  '找不到',
+  'Not Found',
+  'Password',
+  '密码',
+  'Reset',
+  '重置',
+]
+
+// 检查URL是否应该被排除
+function isExcludedUrl(url: string): boolean {
+  const lowerUrl = url.toLowerCase()
+  return EXCLUDED_URL_PATTERNS.some(pattern => lowerUrl.includes(pattern.toLowerCase()))
+}
+
+// 检查标题是否应该被排除
+function isExcludedTitle(title: string): boolean {
+  if (!title) return true
+  const lowerTitle = title.toLowerCase()
+  return EXCLUDED_TITLE_PATTERNS.some(pattern => lowerTitle.includes(pattern.toLowerCase()))
+}
+
 // 超时控制的fetch
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 15000): Promise<Response> {
   const controller = new AbortController()
@@ -180,7 +246,7 @@ async function crawlSiteDeep(
       }
     }
     
-    // 过滤出文章URL
+    // 过滤出文章URL，排除登录页、管理页等无实际内容的页面
     const newsUrls = urlsToScrape.filter(url => {
       const isArticle = url.includes('/20') || 
                        url.includes('/news/') ||
@@ -189,7 +255,9 @@ async function crawlSiteDeep(
                        url.includes('/blog/') ||
                        url.match(/\/\d{4}\/\d{2}\//)
       const isNotAsset = !url.match(/\.(jpg|png|gif|css|js|pdf)$/i)
-      return isArticle && isNotAsset
+      // 排除非内容页面
+      const isNotExcluded = !isExcludedUrl(url)
+      return isArticle && isNotAsset && isNotExcluded
     })
     
     console.log(`Filtered to ${newsUrls.length} potential article URLs`)
@@ -303,7 +371,13 @@ async function crawlSiteDeep(
       const metadata = page.metadata || page.data?.metadata || {}
       const sourceUrl = metadata.sourceURL || metadata.sourceUrl || page.url || siteUrl
       
-      if (metadata.title && metadata.title.length > 10 && metadata.title.length < 300) {
+      // 检查URL和标题是否应该被排除
+      if (isExcludedUrl(sourceUrl)) {
+        console.log(`Skipping excluded URL: ${sourceUrl}`)
+        continue
+      }
+      
+      if (metadata.title && metadata.title.length > 10 && metadata.title.length < 300 && !isExcludedTitle(metadata.title)) {
         articles.push({
           title: metadata.title,
           summary: metadata.description || null,
@@ -320,7 +394,7 @@ async function crawlSiteDeep(
       const titleMatches = markdown.match(/^#{1,3}\s+(.+)$/gm) || []
       for (const match of titleMatches.slice(0, 3)) {
         const title = match.replace(/^#+\s+/, '').trim()
-        if (title.length >= 10 && title.length <= 300) {
+        if (title.length >= 10 && title.length <= 300 && !isExcludedTitle(title)) {
           articles.push({
             title: title,
             summary: null,
@@ -406,6 +480,12 @@ async function scrapeNewsFromUrl(
     for (const title of titlesToProcess) {
       if (title.length < 10 || title.length > 300) continue
       
+      // 检查标题是否应该被排除
+      if (isExcludedTitle(title)) {
+        console.log(`Skipping excluded title: ${title}`)
+        continue
+      }
+      
       // 尝试从链接中找到对应的文章链接
       const matchedLink = links.find((link: string) => {
         const titleWords = title.toLowerCase().split(' ').filter((w: string) => w.length > 3)
@@ -413,6 +493,12 @@ async function scrapeNewsFromUrl(
       })
       
       const articleUrl = matchedLink || url
+      
+      // 检查URL是否应该被排除
+      if (isExcludedUrl(articleUrl)) {
+        console.log(`Skipping excluded URL: ${articleUrl}`)
+        continue
+      }
       
       articles.push({
         title: title,
