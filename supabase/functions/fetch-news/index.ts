@@ -40,8 +40,8 @@ const NEWS_SOURCES = [
   // CNMD专栏 - 专门抓取cnmdnews.com全部内容
   { url: 'https://www.cnmdnews.com/', name: 'CNMD News', category: 'cnmd' },
   
-  // 威软科技 - 抓取weiruan.org全部内容
-  { url: 'https://www.weiruan.org/', name: '威软科技', category: 'weiruan' },
+  // WeiRuanKeJi专栏 - 单独抓取weiruan.org全部内容
+  { url: 'https://weiruan.org/', name: 'WeiRuanKeJi', category: 'weiruan' },
   
   // 俄乌冲突
   { url: 'https://www.reuters.com/world/europe/', name: 'Reuters Europe', category: 'russia_ukraine' },
@@ -196,12 +196,12 @@ async function crawlCnmdNews(
   return crawlSiteDeep(firecrawlApiKey, 'https://www.cnmdnews.com/', 'CNMD News', category)
 }
 
-// 深度抓取 weiruan.org 全部内容
+// 深度抓取 weiruan.org 全部内容 - WeiRuanKeJi专栏
 async function crawlWeiruanNews(
   firecrawlApiKey: string,
   category: string
 ): Promise<NewsArticle[]> {
-  return crawlSiteDeep(firecrawlApiKey, 'https://www.weiruan.org/', '威软科技', category)
+  return crawlSiteDeep(firecrawlApiKey, 'https://weiruan.org/', 'WeiRuanKeJi', category)
 }
 
 // 通用深度抓取函数 - 增强稳定性
