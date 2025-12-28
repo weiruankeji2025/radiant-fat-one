@@ -196,12 +196,162 @@ async function crawlCnmdNews(
   return crawlSiteDeep(firecrawlApiKey, 'https://www.cnmdnews.com/', 'CNMD News', category)
 }
 
-// 深度抓取 weiruan.org 全部内容 - WeiRuanKeJi专栏
-async function crawlWeiruanNews(
+// 专门抓取 weiruan.org 导航链接 - WeiRuanKeJi专栏（资源推荐）
+async function crawlWeiruanResources(
   firecrawlApiKey: string,
   category: string
 ): Promise<NewsArticle[]> {
-  return crawlSiteDeep(firecrawlApiKey, 'https://weiruan.org/', 'WeiRuanKeJi', category)
+  console.log('Fetching WeiRuanKeJi resources from weiruan.org...')
+  
+  try {
+    // 抓取导航页面内容
+    const response = await fetchWithRetry(
+      'https://api.firecrawl.dev/v1/scrape',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: 'https://weiruan.org/',
+          formats: ['markdown', 'links'],
+          onlyMainContent: true,
+        }),
+      },
+      2,
+      20000
+    )
+
+    if (!response) {
+      console.error('Failed to scrape weiruan.org')
+      return []
+    }
+
+    let data
+    try {
+      data = await response.json()
+    } catch (e) {
+      console.error('Failed to parse weiruan.org response:', e)
+      return []
+    }
+
+    const markdown = data.data?.markdown || data.markdown || ''
+    const links = data.data?.links || data.links || []
+    
+    console.log(`Weiruan.org markdown length: ${markdown.length}, links: ${links.length}`)
+    
+    const articles: NewsArticle[] = []
+    
+    // 定义分类映射
+    const categoryPatterns = [
+      { name: '威软科技集群', emoji: '🔧' },
+      { name: '常用推荐', emoji: '⭐' },
+      { name: '论坛', emoji: '💬' },
+      { name: 'VPS服务', emoji: '🖥️' },
+      { name: 'AI 工具', emoji: '🤖' },
+      { name: '面板工具', emoji: '📊' },
+      { name: '影视资源', emoji: '🎬' },
+      { name: '域名服务', emoji: '🌐' },
+      { name: '邮箱', emoji: '📧' },
+      { name: '网盘', emoji: '☁️' },
+      { name: '友情链接', emoji: '🔗' },
+    ]
+    
+    // 从markdown中提取资源条目
+    // 格式类似: **威软订阅** \n\n 暂无描述\n\n 49](https://www.weiruan.org/go/8)
+    const resourcePattern = /\*\*([^*]+)\*\*\s*\\?\n?\\?\n?\s*([^\n\\]*?)\\?\n?\\?\n?\s*(\d+)\]\((https:\/\/www\.weiruan\.org\/go\/\d+)\)/g
+    
+    let match
+    let currentCategory = '其他资源'
+    
+    // 先查找分类标题
+    const lines = markdown.split('\n')
+    for (const line of lines) {
+      // 检查是否是分类标题
+      for (const cat of categoryPatterns) {
+        if (line.includes(cat.name)) {
+          currentCategory = cat.name
+          break
+        }
+      }
+    }
+    
+    // 提取所有资源
+    while ((match = resourcePattern.exec(markdown)) !== null) {
+      const [, name, description, clicks, url] = match
+      
+      if (name && url) {
+        const cleanName = name.trim()
+        const cleanDesc = description.trim() === '暂无描述' ? '' : description.trim()
+        
+        // 为资源创建标题，包含来源分类
+        const title = `[资源推荐] ${cleanName}`
+        const summary = cleanDesc || `威软导航推荐资源 - 热度: ${clicks}`
+        
+        articles.push({
+          title: title,
+          summary: summary,
+          content: `**${cleanName}**\n\n${cleanDesc || '威软导航推荐资源'}\n\n热度: ${clicks}\n\n来源: weiruan.org`,
+          source_url: url,
+          source_name: 'WeiRuanKeJi',
+          category: category,
+          image_url: null,
+          published_at: new Date().toISOString(),
+        })
+      }
+    }
+    
+    // 如果正则没有匹配到，尝试另一种方式提取
+    if (articles.length === 0) {
+      console.log('Trying alternative extraction method...')
+      
+      // 从links中提取weiruan.org的跳转链接
+      const weiruanLinks = links.filter((link: string) => 
+        link.includes('weiruan.org/go/')
+      )
+      
+      console.log(`Found ${weiruanLinks.length} weiruan.org redirect links`)
+      
+      // 从markdown提取名称
+      const namePattern = /\*\*([^*]+)\*\*/g
+      const names: string[] = []
+      let nameMatch
+      while ((nameMatch = namePattern.exec(markdown)) !== null) {
+        const name = nameMatch[1].trim()
+        if (name && name.length < 50 && !name.includes('\\')) {
+          names.push(name)
+        }
+      }
+      
+      console.log(`Extracted ${names.length} resource names`)
+      
+      // 匹配名称和链接
+      for (let i = 0; i < Math.min(names.length, weiruanLinks.length); i++) {
+        articles.push({
+          title: `[资源推荐] ${names[i]}`,
+          summary: `威软导航推荐资源`,
+          content: `**${names[i]}**\n\n威软导航推荐资源\n\n来源: weiruan.org`,
+          source_url: weiruanLinks[i],
+          source_name: 'WeiRuanKeJi',
+          category: category,
+          image_url: null,
+          published_at: new Date().toISOString(),
+        })
+      }
+    }
+    
+    // 去重
+    const uniqueArticles = articles.filter((article, index, self) =>
+      index === self.findIndex(a => a.title === article.title)
+    )
+    
+    console.log(`Found ${uniqueArticles.length} WeiRuanKeJi resources`)
+    return uniqueArticles
+  } catch (error) {
+    console.error('Error crawling weiruan.org:', error)
+    return []
+  }
 }
 
 // 通用深度抓取函数 - 增强稳定性
@@ -574,18 +724,18 @@ Deno.serve(async (req) => {
       sourcesToScrape = sourcesToScrape.filter(s => s.name !== 'CNMD News')
     }
 
-    // 特殊处理 weiruan.org - 深度抓取
-    const weiruanSource = sourcesToScrape.find(s => s.name === '威软科技')
+    // 特殊处理 weiruan.org - 抓取导航资源
+    const weiruanSource = sourcesToScrape.find(s => s.name === 'WeiRuanKeJi')
     if (weiruanSource) {
-      console.log('Deep crawling weiruan.org...')
+      console.log('Fetching WeiRuanKeJi resources from weiruan.org...')
       try {
-        const weiruanArticles = await crawlWeiruanNews(firecrawlApiKey, weiruanSource.category)
+        const weiruanArticles = await crawlWeiruanResources(firecrawlApiKey, weiruanSource.category)
         allArticles.push(...weiruanArticles)
       } catch (e) {
-        console.error('Weiruan crawl failed:', e)
-        errors.push('威软科技')
+        console.error('WeiRuanKeJi fetch failed:', e)
+        errors.push('WeiRuanKeJi')
       }
-      sourcesToScrape = sourcesToScrape.filter(s => s.name !== '威软科技')
+      sourcesToScrape = sourcesToScrape.filter(s => s.name !== 'WeiRuanKeJi')
     }
 
     // 并行爬取其他新闻源（限制并发数）- 减少批次大小以提高稳定性
