@@ -124,7 +124,7 @@ export const categoryLabels: Record<NewsCategory, string> = {
   korea: '朝韩',
   southeast_asia: '东南亚',
   cnmd: 'CNMD NEWS',
-  weiruan: '威软科技',
+  weiruan: 'WeiRuanKeJi',
   other: '其他',
 }
 
